@@ -46,9 +46,13 @@ export default function DealGrid() {
               Discount: <span className="font-medium">{deal.discount}</span>
             </p>
             <p className="text-sm text-zinc-500">Expires: {deal.expiry}</p>
-            <button className="mt-3 w-full bg-black text-white py-2 rounded-lg hover:bg-zinc-800">
-              Claim NFT
-            </button>
+            <button
+  onClick={() => alert("🎟️ NFT claimed successfully! (Simulated)")}
+  className="mt-3 w-full bg-black text-white py-2 rounded-lg hover:bg-zinc-800 transition"
+>
+  Claim NFT
+</button>
+
           </div>
         </div>
       ))}
