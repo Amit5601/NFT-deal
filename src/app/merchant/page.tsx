@@ -1,5 +1,9 @@
 "use client";
 import React, { useState } from "react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { makeProvider } from "@/lib/makeProvider";
+import { createDeal, createMarket } from "@/lib/prediction";
+import { sha256Bytes, toHex } from "@/lib/crypto";
 
 interface Deal {
   id: number;
@@ -8,6 +12,10 @@ interface Deal {
   discount: string;
   expiry: string;
   image: string;
+  // ui-only fields:
+  secretHex?: string | null;
+  dealIdHex?: string | null;
+  tx?: string | null;
 }
 
 export default function MerchantDashboard() {
@@ -19,18 +27,92 @@ export default function MerchantDashboard() {
     discount: "",
     expiry: "",
     image: "",
+    secretHex: null,
+    dealIdHex: null,
+    tx: null,
   });
+
+  const { connection } = useConnection();
+  const wallet = useWallet();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  //(keeps UX intact) + optional on-chain createDeal call
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newDeal = { ...form, id: Date.now() };
-    setDeals([...deals, newDeal]);
-    setForm({ id: 0, title: "", description: "", discount: "", expiry: "", image: "" });
-    alert("✅ Deal created successfully (NFT Mint simulated)");
+
+    // Save local deal entry as before
+    const newDeal: Deal = { ...form, id: Date.now(), secretHex: null, dealIdHex: null, tx: null };
+    setDeals((prev) => [...prev, newDeal]);
+
+    // Reset form fields
+    setForm({ id: 0, title: "", description: "", discount: "", expiry: "", image: "", secretHex: null, dealIdHex: null, tx: null });
+
+    // Notify merchant locally
+    alert("✅ Deal saved locally. Now creating on-chain deal (if wallet connected).");
+
+    // If wallet connected, create on-chain deal and generate secret/QR
+    if (!wallet.connected || !wallet.publicKey) {
+      // not connected: merchant can still copy the deal data from the UI and create later
+      alert("Wallet not connected. Connect wallet to create on-chain deal and generate redeem QR.");
+      return;
+    }
+
+    try {
+      const provider = makeProvider(wallet, connection);
+
+      // create a random 8-byte deal id
+      const dealId = new Uint8Array(8);
+      crypto.getRandomValues(dealId);
+      // create a random 32-byte secret and hash it
+      const secret = new Uint8Array(32);
+      crypto.getRandomValues(secret);
+      const secretHash = await sha256Bytes(secret);
+
+      // call on-chain createDeal
+      const res = await createDeal(provider, dealId, secretHash);
+      if (!res.success) {
+        alert("On-chain createDeal failed: " + res.error);
+        return;
+      }
+
+      const secretHex = toHex(secret);
+      const dealIdHex = Array.from(dealId).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+      // update the most-recent local deal entry with tx and secret info
+      setDeals((prev) => {
+        const copy = [...prev];
+        const idx = copy.findIndex((d) => d.id === newDeal.id);
+        if (idx !== -1) {
+          copy[idx] = { ...copy[idx], secretHex, dealIdHex, tx: res.tx ?? null };
+        }
+        return copy;
+      });
+
+      // show result and QR URL for merchant to copy/share
+      alert(`Deal created on-chain. tx: ${res.tx}\nSecret (hex): ${secretHex}\nDealId (hex): ${dealIdHex}`);
+    } catch (err: any) {
+      console.error("createDeal error", err);
+      alert("Exception while creating on-chain deal: " + String(err?.message ?? err));
+    }
+  };
+
+  
+  const handleCreateMarket = async () => {
+    if (!wallet.connected || !wallet.publicKey) return alert("Connect wallet first");
+    try {
+      const provider = makeProvider(wallet, connection);
+      const marketId = new Uint8Array(8);
+      crypto.getRandomValues(marketId);
+      const expiresAt = Math.floor(Date.now() / 1000 + 60 * 60); // 1 hour
+      const res = await createMarket(provider, marketId, "Merchant-created market", expiresAt);
+      if (!res.success) return alert("createMarket failed: " + res.error);
+      alert("Market created. marketId (hex): " + Array.from(marketId).map((b) => b.toString(16).padStart(2, "0")).join(""));
+    } catch (e: any) {
+      alert("createMarket error: " + String(e?.message ?? e));
+    }
   };
 
   return (
@@ -85,12 +167,22 @@ export default function MerchantDashboard() {
             className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800"
           />
 
-          <button
-            type="submit"
-            className="mt-3 bg-black text-white py-2 rounded-lg hover:bg-zinc-800"
-          >
-            Mint NFT Deal
-          </button>
+          <div className="flex gap-3 items-center">
+            <button
+              type="submit"
+              className="mt-3 bg-black text-white py-2 rounded-lg hover:bg-zinc-800"
+            >
+              Create Deal (on-chain if wallet connected)
+            </button>
+
+            <button
+              type="button"
+              className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg"
+              onClick={handleCreateMarket}
+            >
+              Create Market (demo)
+            </button>
+          </div>
         </div>
       </form>
 
@@ -120,6 +212,20 @@ export default function MerchantDashboard() {
                     Discount: <span className="font-medium">{deal.discount}</span>
                   </p>
                   <p className="text-sm text-zinc-500">Expires: {deal.expiry}</p>
+
+                  {/* On-chain info + QR */}
+                  {deal.secretHex && (
+                    <div className="mt-3">
+                      <p className="text-xs text-zinc-400">Secret (hex):</p>
+                      <p className="font-mono break-all text-sm">{deal.secretHex}</p>
+                      <p className="mt-1 text-xs text-zinc-400">DealId (hex): <span className="font-mono">{deal.dealIdHex}</span></p>
+                      <p className="mt-2 text-sm">
+                        QR URL example: <span className="font-mono break-all">{`${location.origin}/redeem?secret=${deal.secretHex}&merchant=${wallet.publicKey?.toBase58() ?? ""}&dealId=${deal.dealIdHex}`}</span>
+                      </p>
+                      {deal.tx && <p className="mt-2 text-xs text-zinc-500">tx: {deal.tx}</p>}
+                    </div>
+                  )}
+
                 </div>
               </div>
             ))}
