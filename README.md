@@ -149,7 +149,7 @@ http://localhost:3000
 
 🎥 Demo Video
 
-(Upload the trailer and paste link here)
+https://youtu.be/gnL-xuUc9J4
 
 🌐 Deployment
 
