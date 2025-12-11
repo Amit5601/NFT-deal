@@ -1,140 +1,191 @@
 # 🪙 Dealify — Web3 Deal Discovery & Loyalty Platform
 
-🔗 **Live Demo:** [https://nft-deal.vercel.app](https://nft-deal.vercel.app)  
-💻 **Code Repository:** [https://github.com/Amit5601/NFT-deal](https://github.com/Amit5601/NFT-deal)
+Create and redeem cryptographically verifiable deals with no backend.
 
----
+Dealify is a decentralized deal system where merchants can create on-chain offers and users can redeem them using a secret-based verification mechanism.
+The project demonstrates how Web3 commerce can work without servers, databases, or Web2 authentication.
 
-## 💡 Mission  
-Dealify reimagines how discounts work — turning them into **collectible, tradable NFT coupons**.  
-It’s the Web3 evolution of Groupon: **user-owned, borderless, and transparent**.
+This submission focuses on:
 
-Merchants mint NFT-based deals.  
-Users claim, collect, trade, or redeem them globally — all with verifiable ownership and redemption tracking.
+Deal creation on Solana
 
----
+Secure redemption using Anchor PDAs + hashed secrets
 
-## 🧠 Problem Statement  
-Traditional deal platforms (like Groupon) are centralized.  
-Coupons are non-transferable, easily lost, and expire silently.  
-Dealify fixes this by turning each promotion into a **verifiable digital asset**.
+Merchant and user UI built with Next.js + wallet adapters
 
-> Every discount becomes an NFT — liquid, transparent, and user-owned.
+🚀 Current Features (Hackathon Release)
+1. Merchant Dashboard (fully working)
 
----
+Merchants can:
 
-## 🚀 Overview  
-Dealify is a Web3-powered **deal discovery and loyalty platform** that enables:  
-- **Merchants** to mint verifiable NFT coupons.  
-- **Users** to discover, claim, and redeem deals easily.  
-- **Global portability** of discounts across users and platforms.
+Create on-chain deals
 
----
+Generate dealId (random 8 bytes)
 
-## ✨ Features  
+Generate secret + hashed secret (secure one-time redemption)
 
-### 🧾 Merchant Dashboard  
-Create NFT-based deals with title, description, discount %, expiry date, and image.  
-In a full integration, this would mint NFTs with metadata stored on IPFS.
+Store deal metadata in UI
 
-### 🛍️ User Deal Feed  
-Displays all active deals with claim buttons.  
-Each “Claim NFT” simulates the minting process for now.
+Sign transactions with Phantom
 
-### 🎫 Redeem Page  
-Merchants can enter or scan a coupon ID to verify and mark it as redeemed.  
-Simulated on-chain redemption flow ensures single-use coupons.
+Deal creation directly interacts with the deployed Solana program.
 
-### 💬 Simulated Web3 Flow  
-- “Claim NFT” → Mock mint success alert.  
-- “Redeem” → Mock verification flow.  
-- Ready for Solana + Anchor contract integration.
+2. On-chain Deal Redemption (fully working)
 
----
+Users (or merchants scanning user screens) can:
 
-## 🧩 Architecture  
+Enter secret (hex)
 
-Next.js + Tailwind (Frontend)
-├── / → User Deal Feed
-├── /merchant → Merchant Dashboard (create deals)
-├── /redeem → Redeem flow (verify & redeem)
+Enter deal ID (hex)
+
+Enter merchant address
+
+Redeem deal on-chain through the Anchor program
+
+Receive confirmation if the hash matches and deal is still valid
+
+Redemption cannot be replayed because the program enforces one-time usage.
+
+3. Zero backend infrastructure
+
+No servers
+
+No databases
+
+No APIs
+
+All logic runs on the blockchain
+
+Next.js App Router with client components and Solana wallet integration
+
+🧩 Architecture Overview
+Merchant creates deal
+ → Generates dealId (8 bytes)
+ → Generates secret (32 bytes)
+ → Secret is hashed and stored on-chain
+
+User wants to redeem
+ → Inputs dealId + secret
+ → Program recomputes hash
+ → If match → redeem success
+ → If mismatch → fail
 
 
----
+A clean and secure approach that proves the concept of verifiable deals without NFT minting for now.
 
-## ⚙️ Tech Stack  
+🌱 Future Enhancements (Not yet included but planned)
 
-| Layer | Tools Used |
-|--------|-------------|
-| **Frontend** | Next.js 14 + Tailwind CSS |
-| **Smart Contract (planned)** | Solana + Anchor |
-| **Storage (planned)** | IPFS / Arweave for metadata |
-| **Hosting** | Vercel |
-| **Wallet Integration (planned)** | Phantom / Web3Auth |
+These are not implemented yet but outline the direction of the project.
 
----
+1. NFT Coupon Minting
 
-## 🧪 Flow  
+Mint deals as NFTs (SPL tokens) that users can:
 
-1. **Merchant creates deal** → (Would mint NFT metadata)  
-2. **User claims deal** → NFT claim simulated  
-3. **Merchant redeems** → Coupon ID verified and marked redeemed  
+Trade
 
-This completes the entire lifecycle of NFT coupons — create → own → redeem.
+Transfer
 
----
+Showcase in wallets
 
-## 🧱 Judging Criteria Coverage  
+2. QR Code Flow
 
-| Criteria | How Dealify Addresses It |
-|-----------|--------------------------|
-| **Innovation & Creativity** | Introduces NFT coupons — making discounts tradable, verifiable, and liquid. |
-| **Technical Implementation** | Built with Next.js architecture, modular React components, and Web3-ready simulation flow. |
-| **User Experience (UX)** | Minimalist and intuitive dark-mode UI that abstracts Web3 complexity. |
-| **Feasibility & Scalability** | Merchant dashboard + user discovery system shows adoption potential for real businesses. |
-| **Completeness** | Full flow demonstrated: create → claim → redeem, with simulated on-chain logic. |
+Generate QR codes containing:
 
----
+secret
 
-## 🧱 Web3 Integration Challenges Addressed  
+dealId
 
-- **Representation:** Each coupon represented as NFT metadata (discount %, expiry, merchant ID).  
-- **Redemption Flow:** Simulated verification system to demonstrate secure, single-use redemption.  
-- **UX Abstraction:** Simple, Web2-style flows with mock wallet connect (ready for Web3 plug-in).  
-- **Merchant Onboarding:** Easy form-based dashboard for minting coupons.  
-- **Liquidity & Resale:** Coupons are designed to be transferable in future versions.
+merchant address
 
----
+Users simply scan → redeem.
+Current version supports manual entry only.
 
-## 📈 Future Roadmap  
+3. Deal Marketplace UI
 
-1. **On-Chain Minting:**  
-   Integrate Solana + Metaplex NFT metadata standard.  
-2. **IPFS Storage:**  
-   Upload deal metadata to IPFS/Arweave for permanence.  
-3. **Real Redemption Attestation:**  
-   Anchor program to verify coupon ownership and mark as redeemed.  
-4. **Deal Aggregation:**  
-   Integrate external APIs (Shopify, Booking.com, etc.)  
-5. **Loyalty & Rewards:**  
-   Add on-chain staking or reputation-based rewards for active users.
+View, purchase, and collect deals in a marketplace format.
 
----
+4. On-chain Metadata / IPFS Storage
 
-## 📦 Installation & Local Setup  
+Store deal metadata more persistently.
 
-```bash
-# Clone the repo
-git clone https://github.com/Amit5601/NFT-deal.git
+🔧 Tech Stack
+Frontend
 
-# Navigate into folder
-cd NFT-deal
+Next.js 14 (App Router)
 
-# Install dependencies
+React
+
+TailwindCSS
+
+Solana Wallet Adapter (Phantom, Solflare, etc.)
+
+Smart Contract
+
+Anchor Framework
+
+PDA-based deal accounts
+
+Secure hashed secret validation
+
+No token minting yet (future feature)
+
+🔗 Solana Program (Deployed)
+
+Program ID:
+
+9Q11k5nmhC2f6deR2Kh7jSu1yN642tgkVggtitNWDeH7
+
+🖥️ Local Setup
+Install dependencies
 npm install
 
-# Run locally
+Run dev server
 npm run dev
 
-# Open in browser
+
+App runs at:
+
 http://localhost:3000
+
+🎥 Demo Video
+
+(Upload the trailer and paste link here)
+
+🌐 Deployment
+
+Frontend hosted on Vercel
+(https://nft-deal.vercel.app/)
+
+🛡️ Security Notes
+
+Inputs validated on client
+
+No private key or program keypair committed
+
+Only public program ID included
+
+Secret is never stored, only hashed
+
+Each redemption is one-time only
+
+🏆 Hackathon Value Proposition
+
+Dealify demonstrates:
+
+On-chain deal verification
+
+Backend-less Web3 commerce flow
+
+Merchant dashboards powered by Solana
+
+Practical use case beyond DeFi and gaming
+
+Even without NFT minting or QR codes, the core idea works end-to-end on-chain.
+
+👤 Author
+
+Amit Singhmar
+Web3 Developer
+Solana • Anchor • Rust • Next.js • TypeScript
+
+
